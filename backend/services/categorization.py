@@ -1,16 +1,20 @@
 
-import httpx
+import os
 
-AI_URL = "http://127.0.0.1:8787/categorize"
+import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AI_URL = os.getenv(
+    "MOCK_AI_URL",
+    "http://127.0.0.1:8787/categorize",
+)
 
 VALID_CATEGORIES = {"Sales", "Support", "Billing", "Other"}
 
 
 def categorize_enquiry(enquiry_id: str, message: str) -> tuple[str | None, str]:
-    """
-    Mock AI service ko request bhejein.
-    Returns: (category, categorization_state)
-    """
     try:
         response = httpx.post(
             AI_URL,
@@ -25,7 +29,7 @@ def categorize_enquiry(enquiry_id: str, message: str) -> tuple[str | None, str]:
             return None, "Failed"
 
         data = response.json()
-        category = data.get("category")
+        category = data.get("category") if isinstance(data, dict) else None
 
         if category not in VALID_CATEGORIES:
             return None, "Failed"

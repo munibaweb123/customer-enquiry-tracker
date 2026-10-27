@@ -1,69 +1,179 @@
-import Image from "next/image";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
+
+type EnquiryResponse = {
+  id?: string;
+  name?: string;
+  email?: string;
+  message?: string;
+  category?: string | null;
+  status?: string;
+  categorization_state?: string;
+  detail?: string | { msg?: string }[];
+};
 
 export default function Home() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [isError, setIsError] = useState(false);
+
+  const router = useRouter();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFeedback("");
+    setIsError(false);
+
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      setFeedback("Please complete all fields.");
+      setIsError(true);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/enquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          message: message.trim(),
+        }),
+      });
+
+      const data: EnquiryResponse = await response.json();
+
+      if (!response.ok) {
+        const details = Array.isArray(data.detail)
+          ? data.detail.map((item) => item.msg ?? "Invalid input").join(" ")
+          : typeof data.detail === "string"
+            ? data.detail
+            : "Unable to submit your enquiry.";
+
+        throw new Error(details);
+      }
+
+      // Redirect only after the backend accepts the enquiry.
+      router.push("/dashboard");
+    } catch (error) {
+      setIsError(true);
+      setFeedback(
+        error instanceof TypeError
+          ? "Cannot connect to the backend. Please check that the API server is running."
+          : error instanceof Error
+            ? error.message
+            : "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-slate-100 px-4 py-12 text-slate-900 sm:px-6">
+      <div className="mx-auto max-w-3xl">
+        <header className="mb-10 text-center">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-700">
+            Customer Enquiry Tracker
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            How can we help you?
+          </h1>
+          <p className="mt-3 text-slate-600">
+            Send us your question and our team will get back to you.
+          </p>
+        </header>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className="text-xl font-semibold">Submit an enquiry</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            All fields are required.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+            <div>
+              <label htmlFor="name" className="mb-2 block text-sm font-medium">
+                Full name
+              </label>
+              <input
+                id="name"
+                name="name"
+                autoComplete="name"
+                required
+                maxLength={150}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Enter your full name"
+                className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="message" className="mb-2 block text-sm font-medium">
+                How can we help?
+              </label>
+              <textarea
+                id="message"
+                name="message"
+                required
+                minLength={1}
+                maxLength={10000}
+                rows={5}
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Describe your enquiry..."
+                className="w-full resize-y rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {feedback && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="rounded-lg bg-red-50 p-4 text-sm text-red-700"
+              >
+                {feedback}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Submitting..." : "Submit enquiry"}
+            </button>
+          </form>
+        </section>
+
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Your enquiry will be saved for our team to review.
+        </p>
+      </div>
+    </main>
   );
 }
