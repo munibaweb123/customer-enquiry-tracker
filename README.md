@@ -257,3 +257,66 @@ AI assistance was used to help with implementation guidance, debugging, frontend
 - [ ] Actual time spent and limitations recorded
 - [ ] AI-tool disclosure checked
 - [ ] Repository checked for secrets before submission
+# Architecture diagram
+
+## Architecture Diagram
+
+The diagram below illustrates how the Next.js frontend, FastAPI backend, mock AI categorization service, and Supabase PostgreSQL database interact.
+
+```mermaid
+flowchart TB
+    U(["Customer / Admin"])
+
+    subgraph FRONTEND["Frontend — Next.js"]
+        direction LR
+        FORM["Enquiry Form"]
+        DASH["Admin Dashboard"]
+    end
+
+    subgraph BACKEND["Backend — FastAPI"]
+        direction TB
+        VALIDATE{"Validate Input"}
+        CREATE["Create Enquiry"]
+        LIST["List / Filter Enquiries"]
+        STATUS["Update Status"]
+        RETRY["Retry Categorization"]
+        CAT["Categorization Logic"]
+    end
+
+    AI["Mock AI Service<br/>Node.js :8787"]
+    DB[("Supabase PostgreSQL")]
+
+    U --> FORM
+    U --> DASH
+
+    FORM -->|"POST /api/enquiries"| VALIDATE
+    VALIDATE -->|"Valid"| CREATE
+    VALIDATE -.->|"Invalid: 422"| FORM
+
+    CREATE -->|"1. Save enquiry first"| DB
+    CREATE --> CAT
+    CAT -->|"2. Send message"| AI
+    AI -->|"Category or error"| CAT
+    CAT -->|"3. Save result"| DB
+
+    DASH -->|"GET /api/enquiries"| LIST
+    DASH -->|"PATCH /api/enquiries/:id"| STATUS
+    DASH -->|"POST /api/enquiries/:id/retry"| RETRY
+
+    LIST <--> DB
+    STATUS --> DB
+    RETRY -->|"Reuse saved enquiry ID"| CAT
+    DB -.-> DASH
+
+    classDef frontend fill:#E0F2FE,stroke:#0284C7,color:#0C4A6E,stroke-width:2px
+    classDef backend fill:#EDE9FE,stroke:#7C3AED,color:#4C1D95,stroke-width:2px
+    classDef ai fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
+    classDef database fill:#D1FAE5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef user fill:#F3F4F6,stroke:#6B7280,color:#111827,stroke-width:2px
+
+    class FORM,DASH frontend
+    class VALIDATE,CREATE,LIST,STATUS,RETRY,CAT backend
+    class AI ai
+    class DB database
+    class U user
+```
