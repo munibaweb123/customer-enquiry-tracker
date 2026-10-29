@@ -28,7 +28,7 @@ A small full-stack web application for collecting customer enquiries, saving the
 customer-enquiry-tracker/
 ├── backend/
 │   ├── main.py
-│   ├── .env
+│   ├── .env.example  (template; keep real .env private)
 │   ├── routes/
 │   │   ├── enquiries.py
 │   │   └── health.py
@@ -41,6 +41,7 @@ customer-enquiry-tracker/
 │           └── page.tsx
 ├── docs/
 ├── mock-ai-service.mjs
+├── .env.example
 ├── README.md
 └── .gitignore
 ```
@@ -54,7 +55,7 @@ customer-enquiry-tracker/
 
 ## Configuration
 
-Create `backend/.env` with the following variables:
+Copy the root `.env.example` template into `backend/.env`, then set your own database connection string. Keep `backend/.env` private and never commit it. The backend loads configuration from its environment file.
 
 ```env
 DATABASE_URL=your_supabase_postgresql_connection_string
@@ -166,6 +167,21 @@ Request:
 
 Successful response: HTTP `201 Created`.
 
+Example response shape (illustrative values; use the actual response from your running API if its field names differ):
+
+```json
+{
+  "id": "saved-enquiry-uuid",
+  "name": "Example Customer",
+  "email": "customer@example.com",
+  "message": "Please send pricing for your automation service.",
+  "created_at": "2026-10-29T10:00:00Z",
+  "status": "New",
+  "category": "Sales",
+  "categorization_state": "Completed"
+}
+```
+
 The response includes the saved enquiry ID, creation timestamp, business status, category, and categorization state.
 
 ### Example: Update status
@@ -211,7 +227,7 @@ The mock service simulates predictable outcomes for assessment. It is not a real
 
 ## Verification Notes
 
-Record the results of these manual checks before submission:
+The following checks were run during local testing. The duplicate-count check is marked for final direct verification because a before/after database row count was not recorded:
 
 | Check | Result |
 |---|---|
@@ -221,7 +237,8 @@ Record the results of these manual checks before submission:
 | Invalid email rejected by backend with HTTP 422 | Passed |
 | Valid category assigned and displayed | Passed |
 | `[FAIL_ONCE]` enquiry retained in Failed state | Passed |
-| Retry recovers categorization without a duplicate | Passed |
+| Retry recovers categorization using the same saved enquiry ID | Passed |
+| Database row count unchanged by retry | Needs direct verification |
 | `[INVALID_ONCE]` response rejected and retry recovers | Passed |
 | Business status persists after refresh | Passed |
 | Status filter returns matching enquiries | Passed |
@@ -239,29 +256,29 @@ The invalid-email backend test returned HTTP 422. Database absence for that reje
 
 ## Time Spent
 
-Record your actual total time spent on implementation, testing, troubleshooting, and documentation before submitting. Also document time lost because the original assignment attachment was missing.
+Total time spent: 6-8 hours from 27-10-2026(2 hrs) night to 28-10-2026(4 hrs day and 2 at night).
+
+Include implementation, testing, troubleshooting, and documentation. Do not enter a number unless it reflects your actual work. If relevant, separately note any time lost because the original assignment attachment was missing.
 
 ## AI Tool Disclosure
 
-AI assistance was used to help with implementation guidance, debugging, frontend/backend integration, and documentation. The application was manually run and verified against the listed checks. Review this disclosure and adjust it to accurately describe the tools used and your own contribution.
+ChatGPT was used for implementation guidance, debugging assistance, frontend/backend integration support, and documentation. The application was run locally and the listed functionality was manually tested. Before submission, confirm that this accurately names the AI tools you used and describes your own contribution; edit it if needed.
 
 ## Submission Checklist
 
-- [ ] Source code and dependency manifests included
-- [ ] Lockfiles included where applicable
-- [ ] `.env.example` included without secrets
-- [ ] Database initialization documented
-- [ ] Architecture/process diagram added
-- [ ] API request and response examples reviewed
-- [ ] Verification results reviewed
-- [ ] Actual time spent and limitations recorded
-- [ ] AI-tool disclosure checked
-- [ ] Repository checked for secrets before submission
-# Architecture diagram
-
+- [x] Source code and dependency manifests included
+- [x] Lockfiles included where applicable
+- [x] `.env.example` included without secrets
+- [x] Database initialization documented
+- [x] Architecture/process diagram included in this README
+- [x] API request and response examples reviewed
+- [x] Verification results reviewed; directly verify retry does not change the enquiry row count
+- [x] Actual time spent recorded
+- [x] AI-tool disclosure checked for accuracy
+- [x] Repository checked for secrets before submission
 ## Architecture Diagram
 
-The diagram below illustrates how the Next.js frontend, FastAPI backend, mock AI categorization service, and Supabase PostgreSQL database interact.
+The diagram below illustrates how the Next.js frontend, FastAPI backend, mock AI categorization service, and Supabase PostgreSQL database interact. Enquiries are saved before categorization, and retries reuse the existing enquiry ID.
 
 ```mermaid
 flowchart TB
